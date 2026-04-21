@@ -50,7 +50,7 @@ controls = [
     {"left": pygame.K_f,     "right": pygame.K_h},
 ]
 
-# ── Comida ────────────────────────────────────────────────────
+
 class Food:
     def __init__(self):
         self.respawn()
@@ -63,7 +63,6 @@ class Food:
 
 foods = [Food() for _ in range(1200)]
 
-# ── Serpiente ─────────────────────────────────────────────────
 class Snake:
     def __init__(self, x, y, color, is_ai=False, player_index=0):
         self.body         = [(x, y)]
@@ -162,7 +161,7 @@ class Snake:
         pygame.draw.circle(surface, BLACK, (ex1, ey1), max(1, eye_r - 1))
         pygame.draw.circle(surface, BLACK, (ex2, ey2), max(1, eye_r - 1))
 
-# ── Helpers de dibujo ─────────────────────────────────────────
+
 def draw_food(surface, cam_x, cam_y):
     for food in foods:
         pygame.draw.circle(
@@ -211,7 +210,7 @@ def draw_grid(surface, cam_x, cam_y):
     for gy in range(-GRID, h + GRID, GRID):
         pygame.draw.line(surface, color, (0, gy - sy), (w, gy - sy))
 
-# ── Colisiones ────────────────────────────────────────────────
+
 def check_collisions(snakes):
     dead = []
     for i, snake in enumerate(snakes):
@@ -246,7 +245,7 @@ def replenish_bots(snakes):
         )
         snakes.append(s)
 
-# ── Viewports ─────────────────────────────────────────────────
+
 def get_viewports(n):
     if n <= 0:
         return []
@@ -267,9 +266,7 @@ def get_viewports(n):
         (WIDTH // 2, HEIGHT // 2, WIDTH // 2, HEIGHT // 2),
     ]
 
-# ─────────────────────────────────────────────────────────────
-#  MENÚ
-# ─────────────────────────────────────────────────────────────
+
 def draw_starfield(surface, stars, t):
     for (sx, sy, sr, speed) in stars:
         ny = (sy + speed * t * 0.02) % HEIGHT
@@ -384,7 +381,7 @@ def menu():
                 arr = label_font.render("◄          ►", True, ACCENT)
                 screen.blit(arr, arr.get_rect(center=(bx + BLOCK_W // 2, block_y + 80)))
 
-        # ── instrucciones inferiores ─────────────────────────────
+        
         y_hint = block_y + BLOCK_H + 30
         hints = [
             "TAB  →  cambiar slot seleccionado",
@@ -445,9 +442,7 @@ def draw_border_warning(surface, cam_x, cam_y, t):
 
     surface.blit(overlay, (0, 0))
 
-# ─────────────────────────────────────────────────────────────
-#  GAME OVER / WIN
-# ─────────────────────────────────────────────────────────────
+
 def show_gameover(winner_color, winner_idx):
     try:
         big   = pygame.font.SysFont("couriernew", 54, bold=True)
@@ -480,9 +475,7 @@ def show_gameover(winner_color, winner_idx):
         screen.blit(r_txt, r_txt.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 30)))
         pygame.display.flip()
 
-# ─────────────────────────────────────────────────────────────
-#  CREAR SERPIENTES
-# ─────────────────────────────────────────────────────────────
+
 def create_snakes(num_players, player_colors):
     snakes = []
     for i in range(num_players):
@@ -509,9 +502,43 @@ def create_snakes(num_players, player_colors):
 
     return snakes
 
-# ─────────────────────────────────────────────────────────────
-#  LOOP PRINCIPAL
-# ─────────────────────────────────────────────────────────────
+def draw_leaderboard(surface, snakes):
+    try:
+        lb_font  = pygame.font.SysFont("couriernew", 16, bold=True)
+        ttl_font = pygame.font.SysFont("couriernew", 17, bold=True)
+    except Exception:
+        lb_font  = pygame.font.SysFont(None, 16)
+        ttl_font = pygame.font.SysFont(None, 17)
+
+    TOP      = 5
+    W, ROW_H = 200, 22
+    PAD      = 8
+    top5     = sorted(snakes, key=lambda s: s.score, reverse=True)[:TOP]
+    total_h  = PAD + 24 + TOP * ROW_H + PAD
+
+    bg = pygame.Surface((W, total_h), pygame.SRCALPHA)
+    bg.fill((0, 0, 0, 160))
+    x0 = surface.get_width() - W - 10
+    y0 = 10
+    surface.blit(bg, (x0, y0))
+    pygame.draw.rect(surface, ACCENT, (x0, y0, W, total_h), 1, border_radius=4)
+
+    title = ttl_font.render("▶  TOP  5", True, ACCENT)
+    surface.blit(title, (x0 + PAD, y0 + PAD))
+
+    for rank, s in enumerate(top5):
+        ry = y0 + PAD + 24 + rank * ROW_H
+        if not s.is_ai:
+            hl = pygame.Surface((W - 2, ROW_H - 2), pygame.SRCALPHA)
+            hl.fill((255, 255, 255, 18))
+            surface.blit(hl, (x0 + 1, ry))
+        pygame.draw.circle(surface, s.color, (x0 + PAD + 6, ry + ROW_H // 2), 5)
+        name  = f"P{s.player_index+1}" if not s.is_ai else "BOT"
+        label = lb_font.render(f"{rank+1}.  {name}", True, s.color)
+        surface.blit(label, (x0 + PAD + 16, ry + 3))
+        sc_txt = lb_font.render(f"{s.score}", True, WHITE)
+        surface.blit(sc_txt, (x0 + W - sc_txt.get_width() - PAD, ry + 3))
+
 def game():
     global foods
     num_players, player_colors = menu()
@@ -630,6 +657,7 @@ def game():
                 pygame.draw.line(screen, sep_color, (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 2)
                 pygame.draw.line(screen, sep_color, (0, HEIGHT // 2), (WIDTH, HEIGHT // 2), 2)
 
+            draw_leaderboard(screen, snakes)
             pygame.display.flip()
 
         # si llegó acá por restart → volver al menú
