@@ -5,9 +5,9 @@ import math
 pygame.init()
 
 WIDTH, HEIGHT = 1000, 700
-MAP_SIZE = 6000
+MAP_SIZE = 12000
 FPS = 60
-MIN_BOTS = 10
+MIN_BOTS = 30
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Slither.io Local")
@@ -50,21 +50,29 @@ controls = [
     {"left": pygame.K_f,     "right": pygame.K_h},
 ]
 
+BOT_PREFIXES = ["Zar","Nyx","Vel","Dro","Kex","Mur","Siv","Tog","Brix","Phal","Quen","Arlo","Vex","Kro","Snak"]
+BOT_SUFFIXES = ["ius","ox","ek","ara","on","ax","ix","oth","en","ak","uz","yr","el","an","or"]
+
+def random_bot_name():
+    return random.choice(BOT_PREFIXES) + random.choice(BOT_SUFFIXES)
 
 class Food:
     def __init__(self):
         self.respawn()
 
     def respawn(self):
-        self.x     = random.randint(0, MAP_SIZE)
-        self.y     = random.randint(0, MAP_SIZE)
-        self.size  = random.randint(3, 8)
-        self.color = [random.randint(120, 255) for _ in range(3)]
+        self.x         = random.randint(0, MAP_SIZE)
+        self.y         = random.randint(0, MAP_SIZE)
+        self.size      = random.randint(3, 8)
+        self.color     = [random.randint(120, 255) for _ in range(3)]
+        self.phase     = random.uniform(0, 2 * math.pi)
+        self.speed_osc = random.uniform(0.04, 0.10)
+        self.float_r   = random.uniform(0.8, 1.8)
 
-foods = [Food() for _ in range(1200)]
+foods = [Food() for _ in range(2500)]
 
 class Snake:
-    def __init__(self, x, y, color, is_ai=False, player_index=0):
+    def __init__(self, x, y, color, is_ai=False, player_index=0, name=None):
         self.body         = [(x, y)]
         self.angle        = random.uniform(0, 2 * math.pi)
         self.speed        = 3
@@ -74,6 +82,7 @@ class Snake:
         self.player_index = player_index
         self.score        = 0
         self.alive        = True
+        self.name         = name or (random_bot_name() if is_ai else f"P{player_index+1}")
 
         # IA: objetivo actual
         self._ai_target   = None
@@ -162,13 +171,29 @@ class Snake:
         pygame.draw.circle(surface, BLACK, (ex2, ey2), max(1, eye_r - 1))
 
 
+GAME_TICK = 0
+
 def draw_food(surface, cam_x, cam_y):
     for food in foods:
-        pygame.draw.circle(
-            surface, food.color,
-            (int(food.x - cam_x), int(food.y - cam_y)),
-            food.size,
-        )
+        t  = GAME_TICK * food.speed_osc + food.phase
+        fx = food.x + math.sin(t) * food.float_r
+        fy = food.y + math.cos(t * 0.7) * food.float_r
+        sx = int(fx - cam_x)
+        sy = int(fy - cam_y)
+
+        bright = 0.6 + 0.4 * (0.5 + 0.5 * math.sin(t * 1.3))
+        base_c = tuple(min(255, int(c * bright)) for c in food.color)
+
+        halo_r = food.size + 3
+        halo_c = tuple(min(255, int(c * 0.35)) for c in food.color)
+        halo_surf = pygame.Surface((halo_r * 2 + 1, halo_r * 2 + 1), pygame.SRCALPHA)
+        pygame.draw.circle(halo_surf, (*halo_c, 90), (halo_r, halo_r), halo_r)
+        surface.blit(halo_surf, (sx - halo_r, sy - halo_r))
+
+        pygame.draw.circle(surface, base_c, (sx, sy), food.size)
+
+        glow_c = tuple(min(255, int(c * 1.4 + 60)) for c in food.color)
+        pygame.draw.circle(surface, glow_c, (sx, sy), max(1, food.size // 2))
 
 def check_food(snake):
     head = snake.body[0]
@@ -533,8 +558,7 @@ def draw_leaderboard(surface, snakes):
             hl.fill((255, 255, 255, 18))
             surface.blit(hl, (x0 + 1, ry))
         pygame.draw.circle(surface, s.color, (x0 + PAD + 6, ry + ROW_H // 2), 5)
-        name  = f"P{s.player_index+1}" if not s.is_ai else "BOT"
-        label = lb_font.render(f"{rank+1}.  {name}", True, s.color)
+        label = lb_font.render(f"{rank+1}.  {s.name}", True, s.color)
         surface.blit(label, (x0 + PAD + 16, ry + 3))
         sc_txt = lb_font.render(f"{s.score}", True, WHITE)
         surface.blit(sc_txt, (x0 + W - sc_txt.get_width() - PAD, ry + 3))
@@ -552,6 +576,8 @@ def game():
         running = True
         while running:
             clock.tick(FPS)
+            global GAME_TICK
+            GAME_TICK += 1
             t += 1
 
             for event in pygame.event.get():
