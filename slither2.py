@@ -44,10 +44,10 @@ BOT_COLORS = [
 ]
 
 controls = [
-    {"left": pygame.K_a,     "right": pygame.K_d},
-    {"left": pygame.K_LEFT,  "right": pygame.K_RIGHT},
-    {"left": pygame.K_j,     "right": pygame.K_l},
-    {"left": pygame.K_f,     "right": pygame.K_h},
+    {"left": pygame.K_a, "right": pygame.K_d, "boost": pygame.K_w},
+    {"left": pygame.K_LEFT, "right": pygame.K_RIGHT, "boost": pygame.K_UP},
+    {"left": pygame.K_j, "right": pygame.K_l, "boost": pygame.K_i},
+    {"left": pygame.K_f, "right": pygame.K_h, "boost": pygame.K_t},
 ]
 
 BOT_PREFIXES = ["Zar","Nyx","Vel","Dro","Kex","Mur","Siv","Tog","Brix","Phal","Quen","Arlo","Vex","Kro","Snak"]
@@ -83,6 +83,7 @@ class Snake:
         self.score        = 0
         self.alive        = True
         self.name         = name or (random_bot_name() if is_ai else f"P{player_index+1}")
+        self.boost_timer = 0   # acumula frames de boost
 
         # IA: objetivo actual
         self._ai_target   = None
@@ -96,12 +97,14 @@ class Snake:
                     self.angle -= 0.07
                 if keys["right"]:
                     self.angle += 0.07
+                current_speed = 6 if keys["boost"] and self.score > 0 else self.speed
         else:
             self._ai_move()
+            current_speed = self.speed
 
         hx, hy = self.body[0]
-        hx += math.cos(self.angle) * self.speed
-        hy += math.sin(self.angle) * self.speed
+        hx += math.cos(self.angle) * current_speed
+        hy += math.sin(self.angle) * current_speed
 
         # wrap
         hx %= MAP_SIZE
@@ -141,26 +144,36 @@ class Snake:
         self.length += amount
         self.score  += amount
 
-    def draw(self, surface, cam_x, cam_y):
+    def draw(self, surface, cam_x, cam_y, boosting=False):
         n = len(self.body)
-        for idx, (x, y) in enumerate(self.body):
-            # radio crece levemente con el tamaño
-            base_r = 5 + min(self.length // 60, 5)
-            r      = base_r if idx > 0 else base_r + 2  # cabeza un poco más grande
 
-            # color más oscuro hacia la cola
-            fade   = 0.5 + 0.5 * (1 - idx / max(n, 1))
-            color  = tuple(int(c * fade) for c in self.color)
+        for idx, (x, y) in enumerate(self.body):
+            base_r = 5 + min(self.length // 60, 5)
+            r      = base_r if idx > 0 else base_r + 2
+
+            fade  = 0.5 + 0.5 * (1 - idx / max(n, 1))
+            color = tuple(int(c * fade) for c in self.color)
 
             sx = int(x - cam_x)
             sy = int(y - cam_y)
             pygame.draw.circle(surface, color, (sx, sy), r)
 
-        # ojos en la cabeza
+            # luz que pulsa en todo el cuerpo a la vez
+            if boosting:
+                pulse = 0.5 + 0.5 * math.sin(GAME_TICK * 0.18)
+                if pulse > 0.1:
+                    glow_r = r + 4
+                    glow_a = int(pulse * 160)
+                    glow_c = tuple(min(255, int(c + 100 * pulse)) for c in self.color)
+                    gs = pygame.Surface((glow_r * 2 + 1, glow_r * 2 + 1), pygame.SRCALPHA)
+                    pygame.draw.circle(gs, (*glow_c, glow_a), (glow_r, glow_r), glow_r)
+                    surface.blit(gs, (sx - glow_r, sy - glow_r))
+
+        # ojos
         hx = int(self.body[0][0] - cam_x)
         hy = int(self.body[0][1] - cam_y)
-        eye_r   = max(2, base_r // 2)
-        offset  = base_r - 1
+        eye_r  = max(2, base_r // 2)
+        offset = base_r - 1
         ex1 = hx + int(math.cos(self.angle - 0.6) * offset)
         ey1 = hy + int(math.sin(self.angle - 0.6) * offset)
         ex2 = hx + int(math.cos(self.angle + 0.6) * offset)
@@ -175,25 +188,28 @@ GAME_TICK = 0
 
 def draw_food(surface, cam_x, cam_y):
     for food in foods:
-        t  = GAME_TICK * food.speed_osc + food.phase
-        fx = food.x + math.sin(t) * food.float_r
-        fy = food.y + math.cos(t * 0.7) * food.float_r
-        sx = int(fx - cam_x)
-        sy = int(fy - cam_y)
+        t      = GAME_TICK * food.speed_osc + food.phase
+        fx     = food.x + math.sin(t) * food.float_r
+        fy     = food.y + math.cos(t * 0.7) * food.float_r
+        sx     = int(fx - cam_x)
+        sy     = int(fy - cam_y)
 
-        bright = 0.6 + 0.4 * (0.5 + 0.5 * math.sin(t * 1.3))
-        base_c = tuple(min(255, int(c * bright)) for c in food.color)
+        # pulso de brillo: sube y baja suavemente
+        bright = 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * 1.3))
 
-        halo_r = food.size + 3
-        halo_c = tuple(min(255, int(c * 0.35)) for c in food.color)
-        halo_surf = pygame.Surface((halo_r * 2 + 1, halo_r * 2 + 1), pygame.SRCALPHA)
-        pygame.draw.circle(halo_surf, (*halo_c, 90), (halo_r, halo_r), halo_r)
-        surface.blit(halo_surf, (sx - halo_r, sy - halo_r))
+        # halo exterior grande, muy transparente
+        for halo_r, alpha in [(food.size + 6, 35), (food.size + 3, 65)]:
+            halo_c = tuple(min(255, int(c * bright)) for c in food.color)
+            hs = pygame.Surface((halo_r * 2 + 1, halo_r * 2 + 1), pygame.SRCALPHA)
+            pygame.draw.circle(hs, (*halo_c, alpha), (halo_r, halo_r), halo_r)
+            surface.blit(hs, (sx - halo_r, sy - halo_r))
 
-        pygame.draw.circle(surface, base_c, (sx, sy), food.size)
-
-        glow_c = tuple(min(255, int(c * 1.4 + 60)) for c in food.color)
-        pygame.draw.circle(surface, glow_c, (sx, sy), max(1, food.size // 2))
+        # núcleo: solo un círculo pequeño de luz, sin relleno sólido
+        core_r = max(2, int(food.size * 0.5 * bright))
+        core_c = tuple(min(255, int(c * bright + 80)) for c in food.color)
+        core_s = pygame.Surface((core_r * 2 + 1, core_r * 2 + 1), pygame.SRCALPHA)
+        pygame.draw.circle(core_s, (*core_c, 200), (core_r, core_r), core_r)
+        surface.blit(core_s, (sx - core_r, sy - core_r))
 
 def check_food(snake):
     head = snake.body[0]
@@ -203,14 +219,14 @@ def check_food(snake):
             snake.grow(food.size)
 
 def draw_minimap(surface, snakes):
-    mini_size = 130
+    mini_size = 160
     mini = pygame.Surface((mini_size, mini_size), pygame.SRCALPHA)
     mini.fill((10, 10, 20, 200))
     pygame.draw.rect(mini, ACCENT, (0, 0, mini_size, mini_size), 1)
 
     scale = mini_size / MAP_SIZE
 
-    for food in random.sample(foods, min(200, len(foods))):
+    for food in random.sample(foods, min(100, len(foods))):
         x = int(food.x * scale)
         y = int(food.y * scale)
         pygame.draw.circle(mini, food.color, (x, y), 1)
@@ -592,8 +608,19 @@ def game():
                     keys = {
                         "left":  pressed[controls[snake.player_index]["left"]],
                         "right": pressed[controls[snake.player_index]["right"]],
+                        "boost": pressed[controls[snake.player_index]["boost"]],
                     }
                     snake.move(keys)
+
+                    # costo del boost: 1 punto por segundo (60 frames)
+                    if keys["boost"] and snake.score > 0 and snake.length > 5:
+                        snake.boost_timer += 1
+                        if snake.boost_timer >= 60:
+                            snake.boost_timer = 0
+                            snake.length = max(5, snake.length - 2)
+                            snake.score  = max(0, snake.score  - 2)
+                    else:
+                        snake.boost_timer = 0
                 else:
                     snake.move()
                 check_food(snake)
@@ -645,7 +672,9 @@ def game():
                 draw_border_warning(surface, cam_x, cam_y, t)
 
                 for s in snakes:
-                    s.draw(surface, cam_x, cam_y)
+                    is_boosting = (not s.is_ai and
+                        pressed[controls[s.player_index]["boost"]])
+                    s.draw(surface, cam_x, cam_y, boosting=is_boosting) 
 
                 draw_minimap(surface, snakes)
 
