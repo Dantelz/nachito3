@@ -114,7 +114,7 @@ class Snake:
             self.body.pop()
 
     def _ai_move(self):
-        """IA simple: busca la comida más cercana."""
+        
         self._ai_timer -= 1
         hx, hy = self.body[0]
 
@@ -122,13 +122,13 @@ class Snake:
             # elegir la comida más cercana en un radio
             best   = None
             best_d = float("inf")
-            for f in random.sample(foods, min(60, len(foods))):
+            for f in random.sample(foods, min(20, len(foods))):
                 d = math.hypot(hx - f.x, hy - f.y)
                 if d < best_d:
                     best_d = d
                     best   = f
             self._ai_target = best
-            self._ai_timer  = 40
+            self._ai_timer  = 20    
 
         if self._ai_target:
             tx, ty    = self._ai_target.x, self._ai_target.y
@@ -439,7 +439,7 @@ def menu():
             cl = label_font.render(f"P{i+1}: {ctrl_labels[i]}", True, PALETTE[player_colors[i]])
             screen.blit(cl, cl.get_rect(center=(WIDTH // 2 + (i - num_players // 2) * 130 + (30 if num_players % 2 == 0 else 0), y_ctrl + 24)))
 
-        # línea decorativa inferior
+        
         pygame.draw.line(screen, ACCENT, (60, HEIGHT - 30), (WIDTH - 60, HEIGHT - 30), 1)
 
         pygame.display.flip()
