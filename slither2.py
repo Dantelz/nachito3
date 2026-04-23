@@ -5,7 +5,7 @@ import math
 pygame.init()
 
 WIDTH, HEIGHT = 1000, 700
-MAP_SIZE = 6000
+MAP_SIZE = 5000
 FPS = 90
 MIN_BOTS = 20
 
@@ -69,7 +69,7 @@ class Food:
         self.speed_osc = random.uniform(0.04, 0.10)
         self.float_r   = random.uniform(0.8, 1.8)
 
-foods = [Food() for _ in range(1000)]
+foods = [Food() for _ in range(200)]
 
 class Snake:
     def __init__(self, x, y, color, is_ai=False, player_index=0, name=None):
@@ -197,18 +197,8 @@ def draw_food(surface, cam_x, cam_y):
         bright = 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * 1.3))
 
         
-        for halo_r, alpha in [(food.size + 6, 35), (food.size + 3, 65)]:
-            halo_c = tuple(min(255, int(c * bright)) for c in food.color)
-            hs = pygame.Surface((halo_r * 2 + 1, halo_r * 2 + 1), pygame.SRCALPHA)
-            pygame.draw.circle(hs, (*halo_c, alpha), (halo_r, halo_r), halo_r)
-            surface.blit(hs, (sx - halo_r, sy - halo_r))
-
-        
-        core_r = max(2, int(food.size * 0.5 * bright))
         core_c = tuple(min(255, int(c * bright + 80)) for c in food.color)
-        core_s = pygame.Surface((core_r * 2 + 1, core_r * 2 + 1), pygame.SRCALPHA)
-        pygame.draw.circle(core_s, (*core_c, 200), (core_r, core_r), core_r)
-        surface.blit(core_s, (sx - core_r, sy - core_r))
+        pygame.draw.circle(surface, core_c, (sx, sy), max(2, food.size))
 
 def check_food(snake):
     head = snake.body[0]
