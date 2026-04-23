@@ -5,7 +5,7 @@ import math
 pygame.init()
 
 WIDTH, HEIGHT = 1000, 700
-MAP_SIZE = 12000
+MAP_SIZE = 6000
 FPS = 90
 MIN_BOTS = 20
 
@@ -69,7 +69,7 @@ class Food:
         self.speed_osc = random.uniform(0.04, 0.10)
         self.float_r   = random.uniform(0.8, 1.8)
 
-foods = [Food() for _ in range(1500)]
+foods = [Food() for _ in range(1000)]
 
 class Snake:
     def __init__(self, x, y, color, is_ai=False, player_index=0, name=None):
@@ -196,14 +196,14 @@ def draw_food(surface, cam_x, cam_y):
         # pulso de brillo: sube y baja suavemente
         bright = 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * 1.3))
 
-        # halo exterior grande, muy transparente
+        
         for halo_r, alpha in [(food.size + 6, 35), (food.size + 3, 65)]:
             halo_c = tuple(min(255, int(c * bright)) for c in food.color)
             hs = pygame.Surface((halo_r * 2 + 1, halo_r * 2 + 1), pygame.SRCALPHA)
             pygame.draw.circle(hs, (*halo_c, alpha), (halo_r, halo_r), halo_r)
             surface.blit(hs, (sx - halo_r, sy - halo_r))
 
-        # núcleo: solo un círculo pequeño de luz, sin relleno sólido
+        
         core_r = max(2, int(food.size * 0.5 * bright))
         core_c = tuple(min(255, int(c * bright + 80)) for c in food.color)
         core_s = pygame.Surface((core_r * 2 + 1, core_r * 2 + 1), pygame.SRCALPHA)
@@ -225,7 +225,7 @@ def draw_minimap(surface, snakes):
 
     scale = mini_size / MAP_SIZE
 
-    for food in random.sample(foods, min(100, len(foods))):
+    for food in random.sample(foods, min(50, len(foods))):
         x = int(food.x * scale)
         y = int(food.y * scale)
         pygame.draw.circle(mini, food.color, (x, y), 1)
@@ -609,13 +609,13 @@ def game():
                     }
                     snake.move(keys)
 
-                    # costo del boost: 1 punto por segundo (60 frames)
-                    if keys["boost"] and snake.score > 0 and snake.length > 5:
+                    
+                    if keys["boost"] and snake.score > 0 and snake.length > 0:
                         snake.boost_timer += 1
                         if snake.boost_timer >= 60:
                             snake.boost_timer = 0
-                            snake.length = max(5, snake.length - 2)
-                            snake.score  = max(0, snake.score  - 2)
+                            snake.length = max(5, snake.length - 5)
+                            snake.score  = max(0, snake.score  - 5)
                     else:
                         snake.boost_timer = 0
                 else:
