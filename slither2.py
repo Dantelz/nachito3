@@ -6,21 +6,21 @@ pygame.init()
 
 WIDTH, HEIGHT = 1000, 700
 MAP_SIZE = 12000
-FPS = 60
-MIN_BOTS = 30
+FPS = 90
+MIN_BOTS = 20
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Slither.io Local")
 clock = pygame.time.Clock()
 
-# ── Colores base ──────────────────────────────────────────────
+
 WHITE   = (255, 255, 255)
 BLACK   = (0,   0,   0)
 GRAY    = (80,  80,  80)
 DARK    = (15,  15,  25)
 ACCENT  = (0,   220, 180)
 
-# ── Paleta de colores seleccionables para cada jugador ────────
+
 PALETTE = [
     (220,  50,  50),   # rojo
     ( 50, 120, 255),   # azul
@@ -69,7 +69,7 @@ class Food:
         self.speed_osc = random.uniform(0.04, 0.10)
         self.float_r   = random.uniform(0.8, 1.8)
 
-foods = [Food() for _ in range(2500)]
+foods = [Food() for _ in range(1500)]
 
 class Snake:
     def __init__(self, x, y, color, is_ai=False, player_index=0, name=None):
@@ -89,7 +89,6 @@ class Snake:
         self._ai_target   = None
         self._ai_timer    = 0
 
-    # ── movimiento ─────────────────────────────────────────────
     def move(self, keys=None):
         if not self.is_ai:
             if keys:
@@ -273,7 +272,6 @@ def snake_to_food(snake):
         foods.append(f)
 
 def replenish_bots(snakes):
-    """Asegura que siempre haya al menos MIN_BOTS bots vivos."""
     bot_count = sum(1 for s in snakes if s.is_ai)
     for _ in range(MIN_BOTS - bot_count):
         color = random.choice(BOT_COLORS)
@@ -330,15 +328,15 @@ def menu():
               random.randint(1, 2), random.uniform(0.3, 1.5)) for _ in range(180)]
 
     num_players    = 1
-    player_colors  = [0, 1, 2, 3]   # índice en PALETTE para cada slot
-    selected_slot  = 0               # qué slot se está editando ahora
+    player_colors  = [0, 1, 2, 3]   
+    selected_slot  = 0               
     t              = 0
 
-    # geometría de los bloques de jugador
+    
     BLOCK_W, BLOCK_H = 200, 110
     gap   = 20
     total = num_players * BLOCK_W + (num_players - 1) * gap
-    # se recalcula al renderizar
+    
 
     running = True
     while running:
@@ -351,7 +349,6 @@ def menu():
                 exit()
 
             if event.type == pygame.KEYDOWN:
-                # cantidad de jugadores: 1-4
                 if event.key == pygame.K_1: num_players = 1
                 if event.key == pygame.K_2: num_players = 2
                 if event.key == pygame.K_3: num_players = 3
