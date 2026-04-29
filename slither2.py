@@ -196,7 +196,6 @@ def draw_food(surface, cam_x, cam_y):
         # pulso de brillo: sube y baja suavemente
         bright = 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * 1.3))
 
-        
         core_c = tuple(min(255, int(c * bright + 80)) for c in food.color)
         pygame.draw.circle(surface, core_c, (sx, sy), max(2, food.size))
 
@@ -315,7 +314,7 @@ def menu():
 
     # estrellas de fondo
     stars = [(random.randint(0, WIDTH), random.randint(0, HEIGHT),
-              random.randint(1, 2), random.uniform(0.3, 1.5)) for _ in range(180)]
+            random.randint(1, 2), random.uniform(0.3, 1.5)) for _ in range(180)]
 
     num_players    = 1
     player_colors  = [0, 1, 2, 3]   
@@ -359,11 +358,11 @@ def menu():
                     chosen = [PALETTE[player_colors[i]] for i in range(num_players)]
                     return num_players, chosen
 
-        # ── fondo ────────────────────────────────────────────────
+        
         screen.fill(DARK)
         draw_starfield(screen, stars, t)
 
-        # línea decorativa superior
+        
         pygame.draw.line(screen, ACCENT, (60, 90), (WIDTH - 60, 90), 1)
         pygame.draw.line(screen, ACCENT, (60, 92), (WIDTH - 60, 92), 1)
 
@@ -373,11 +372,11 @@ def menu():
         title_surf  = title_font.render("SLITHER  LOCAL", True, title_color)
         screen.blit(title_surf, title_surf.get_rect(center=(WIDTH // 2, 55)))
 
-        # instrucciones superiores
+        
         instr = sub_font.render("Presioná  1 · 2 · 3 · 4  para elegir jugadores", True, (140, 200, 180))
         screen.blit(instr, instr.get_rect(center=(WIDTH // 2, 120)))
 
-        # ── bloques de jugador ───────────────────────────────────
+        
         total_w = num_players * BLOCK_W + (num_players - 1) * gap
         start_x = (WIDTH - total_w) // 2
         block_y  = 175
@@ -450,7 +449,7 @@ def draw_border_warning(surface, cam_x, cam_y, t):
 
     pulse = 0.5 + 0.5 * math.sin(t * 0.05)
 
-    # Draw red alarm outside the map
+    
     if cam_x < 0:
         alpha = int(150 * pulse)
         alpha = max(0, min(255, alpha))
