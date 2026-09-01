@@ -369,7 +369,7 @@ def menu():
         # título
         pulse = int(200 + 55 * math.sin(t * 0.04))
         title_color = (0, pulse, int(pulse * 0.8))
-        title_surf  = title_font.render("SLITHER  LOCAL", True, title_color)
+        title_surf  = title_font.render("SLITHER  GZ", True, title_color)
         screen.blit(title_surf, title_surf.get_rect(center=(WIDTH // 2, 55)))
 
         
