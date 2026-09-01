@@ -10,7 +10,7 @@ FPS = 90
 MIN_BOTS = 20
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Slither.io Local")
+pygame.display.set_caption("Slither.gz")
 clock = pygame.time.Clock()
 
 
